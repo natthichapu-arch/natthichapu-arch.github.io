@@ -1,21 +1,70 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Group</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Secure Chat - กรณีศึกษา 1</title>
+  <style>
+    body { font-family:sans-serif; background:#f4f4f4; padding:20px; }
+    #chat { border:1px solid #ccc; background:#fff; padding:10px; width:400px; height:250px; overflow-y:auto; margin-bottom:10px; display:flex; flex-direction:column; }
+    .msg { padding:6px; margin:4px 0; border-radius:6px; max-width:70%; word-wrap:break-word; }
+    .userA { background:#d1f7d1; align-self:flex-start; }
+    .userB { background:#d1e0f7; align-self:flex-end; }
+  </style>
 </head>
 <body>
-    <div class="chat-container">
-        <h1>กลุ่มลับ</h1>
-        <div class="chat-box" id="chat-box">
-            </div>
-        <div class="input-box">
-            <input type="text" id="message-input" placeholder="พิมพ์ข้อความที่นี่...">
-            <button id="send-btn">ส่ง</button>
-        </div>
-    </div>
-    <script src="script.js"></script>
+  <h2>กรณีศึกษา 1: แชทกลุ่มหลุดมือ</h2>
+  <div id="chat"></div>
+
+  <select id="userSelect">
+    <option value="A">User A</option>
+    <option value="B">User B</option>
+  </select>
+  <input id="msgInput" placeholder="พิมพ์ข้อความ..." />
+  <button onclick="sendMsg()">ส่ง</button>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("msgInput");
+    const userSelect = document.getElementById("userSelect");
+
+    // สร้าง WebSocket client
+    const ws = new WebSocket("ws://localhost:8080");
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      displayMsg(data.user, data.text, data.id);
+    };
+
+    // ส่งข้อความไป server
+    function sendMsg() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      const msg = {
+        user: userSelect.value,
+        text: text,
+        id: Date.now()
+      };
+
+      ws.send(JSON.stringify(msg));
+      input.value = "";
+    }
+
+    // แสดงข้อความในกล่องแชท และตั้งเวลาให้หายไป 20 วินาที
+    function displayMsg(user, text, id) {
+      const div = document.createElement("div");
+      div.className = "msg user" + user;
+      div.dataset.id = id;
+      div.textContent = `User ${user}: ${text}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+
+      setTimeout(() => {
+        if (div.parentNode) {
+          div.remove();
+        }
+      }, 20000);
+    }
+  </script>
 </body>
 </html>
