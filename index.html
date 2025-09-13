@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Case 1: แชทกลุ่มหลุดมือ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family:sans-serif; background:#f7f7fa; margin:0; padding:24px; }
+    .container { max-width:420px; margin:40px auto; background:#fff; border-radius:8px;
+      box-shadow:0 2px 8px #0001; padding:24px; }
+    h2 { margin-top:0; color:#2d3a4a; }
+    #chat { min-height:150px; border:1px solid #ddd; border-radius:6px;
+      padding:12px; background:#f0f4f8; margin-bottom:16px; display:flex; flex-direction:column; }
+    .msg { margin:8px 0; padding:8px 12px; border-radius:5px; position:relative;
+      max-width:80%; word-break:break-word; }
+    .userA { background:#e3f6e8; align-self:flex-start; }
+    .userB { background:#d6eaff; align-self:flex-end; margin-left:auto; }
+    .timer { font-size:12px; color:#888; position:absolute; right:12px; bottom:6px; }
+    input, select, button { font-size:16px; padding:6px 10px; border-radius:4px; border:1px solid #bbb; }
+    button { background:#2ecc71; color:#fff; border:none; cursor:pointer; }
+    button:active { background:#27ae60; }
+    .notice { color:#e74c3c; font-size:14px; margin-bottom:8px; }
+    .lock { font-size:14px; color:#2980b9; margin-bottom:8px; }
+    #overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.85); color:#fff; font-size:22px; z-index:9999;
+      align-items:center; justify-content:center; text-align:center; }
+  </style>
+</head>
+<body>
+  <div id="overlay">🚫 ตรวจพบความพยายามแคปหน้าจอ<br>ไม่อนุญาตให้บันทึกหน้าจอ</div>
+
+  <div class="container">
+    <h2>Case 1: แชทกลุ่มหลุดมือ</h2>
+    <div class="lock">🔒 ข้อความจะถูกลบอัตโนมัติใน 60 วินาที และห้ามแคปหน้าจอ</div>
+    <div id="notice" class="notice"></div>
+    <div id="chat"></div>
+
+    <form id="msgForm" autocomplete="off" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <select id="userSelect">
+        <option value="A">User A</option>
+        <option value="B">User B</option>
+      </select>
+      <input type="text" id="msgInput" placeholder="พิมพ์ข้อความ..." required style="flex:1;">
+      <button type="submit">ส่ง</button>
+    </form>
+    <small>⚠️ Prototype: ข้อความหายเองใน 60 วิ และไม่สามารถคัดลอก/แคปได้</small>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('msgForm');
+    const input = document.getElementById('msgInput');
+    const notice = document.getElementById('notice');
+    const overlay = document.getElementById('overlay');
+    const userSelect = document.getElementById('userSelect');
+    let msgId = 0;
+
+    // Encrypt/Decrypt (Base64)
+    function encrypt(text){ return btoa(unescape(encodeURIComponent(text))); }
+    function decrypt(text){ return decodeURIComponent(escape(atob(text))); }
+
+    // เพิ่มข้อความ
+    function addMessage(text, user){
+      msgId++;
+      const id = 'msg'+msgId;
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'msg ' + (user === 'A' ? 'userA' : 'userB');
+      msgDiv.id = id;
+
+      const encrypted = encrypt(text);
+      msgDiv.textContent = decrypt(encrypted);
+
+      const timer = document.createElement('span');
+      timer.className = 'timer';
+      let seconds = 60;
+      timer.textContent = seconds + 's';
+      msgDiv.appendChild(timer);
+
+      chat.appendChild(msgDiv);
+      chat.scrollTop = chat.scrollHeight;
+
+      // นับถอยหลัง
+      const interval = setInterval(()=>{
+        seconds--;
+        timer.textContent = seconds + 's';
+        if(seconds<=0){
+          clearInterval(interval);
+          msgDiv.remove();
+        }
+      },1000);
+
+      // ห้าม copy
+      msgDiv.oncopy = function(e){
+        e.preventDefault();
+        notice.textContent = '🚫 ไม่อนุญาตให้คัดลอกข้อความ!';
+        setTimeout(()=>notice.textContent='',2000);
+      };
+    }
+
+    // ตรวจจับปุ่มแคปหน้าจอ
+    window.addEventListener('keydown', function(e){
+      if(e.key === 'PrintScreen'){ showOverlay(); }
+      if((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '3' || e.key === '4')){
+        showOverlay();
+      }
+    });
+
+    // ห้ามคลิกขวา
+    window.addEventListener('contextmenu', function(e){
+      e.preventDefault();
+      notice.textContent = '🚫 ไม่อนุญาตให้ใช้คลิกขวา!';
+      setTimeout(()=>notice.textContent='',2000);
+    });
+
+    function showOverlay(){
+      overlay.style.display = 'flex';
+      setTimeout(()=>{ overlay.style.display = 'none'; }, 2500);
+    }
+
+    // ส่งข้อความ
+    form.onsubmit = function(e){
+      e.preventDefault();
+      if(input.value.trim()){
+        addMessage(input.value.trim(), userSelect.value);
+        input.value = '';
+      }
+    };
+  </script>
+</body>
+</html>
