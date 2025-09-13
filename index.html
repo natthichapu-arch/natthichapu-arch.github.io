@@ -1,70 +1,87 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <title>Secure Chat - กรณีศึกษา 1</title>
-  <style>
-    body { font-family:sans-serif; background:#f4f4f4; padding:20px; }
-    #chat { border:1px solid #ccc; background:#fff; padding:10px; width:400px; height:250px; overflow-y:auto; margin-bottom:10px; display:flex; flex-direction:column; }
-    .msg { padding:6px; margin:4px 0; border-radius:6px; max-width:70%; word-wrap:break-word; }
-    .userA { background:#d1f7d1; align-self:flex-start; }
-    .userB { background:#d1e0f7; align-self:flex-end; }
-  </style>
+<meta charset="UTF-8">
+<title>Interactive Chat Prototype</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  #chatBox { border: 1px solid #ccc; height: 300px; width: 400px; overflow-y: auto; padding: 10px; }
+  .message { padding: 5px; margin: 5px 0; border-radius: 5px; }
+  .userA { background-color: #d1e7dd; text-align: left; }
+  .userB { background-color: #f8d7da; text-align: right; }
+</style>
 </head>
 <body>
-  <h2>กรณีศึกษา 1: แชทกลุ่มหลุดมือ</h2>
-  <div id="chat"></div>
 
+<h2>Chat Prototype</h2>
+
+<div>
+  <label>Select User: </label>
   <select id="userSelect">
     <option value="A">User A</option>
     <option value="B">User B</option>
   </select>
-  <input id="msgInput" placeholder="พิมพ์ข้อความ..." />
-  <button onclick="sendMsg()">ส่ง</button>
+</div>
 
-  <script>
-    const chat = document.getElementById("chat");
-    const input = document.getElementById("msgInput");
-    const userSelect = document.getElementById("userSelect");
+<div id="chatBox"></div>
 
-    // สร้าง WebSocket client
-    const ws = new WebSocket("ws://localhost:8080");
+<input type="text" id="messageInput" placeholder="พิมพ์ข้อความ..." />
+<button onclick="sendMessage()">Send</button>
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      displayMsg(data.user, data.text, data.id);
-    };
+<script>
+  const chatBox = document.getElementById('chatBox');
 
-    // ส่งข้อความไป server
-    function sendMsg() {
-      const text = input.value.trim();
-      if (!text) return;
+  // ดึงข้อความจาก LocalStorage
+  function loadMessages() {
+    const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+    chatBox.innerHTML = '';
+    messages.forEach(msg => addMessageToDOM(msg.user, msg.text, msg.timestamp));
+  }
 
-      const msg = {
-        user: userSelect.value,
-        text: text,
-        id: Date.now()
-      };
+  // เพิ่มข้อความลง DOM
+  function addMessageToDOM(user, text, timestamp) {
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message', user === 'A' ? 'userA' : 'userB');
+    msgDiv.textContent = `${text} (${new Date(timestamp).toLocaleTimeString()})`;
+    chatBox.appendChild(msgDiv);
 
-      ws.send(JSON.stringify(msg));
-      input.value = "";
-    }
+    // ตั้งเวลาให้ข้อความหายไป 20 วินาที
+    setTimeout(() => {
+      msgDiv.remove();
+      removeMessageFromStorage(timestamp);
+    }, 20000);
+  }
 
-    // แสดงข้อความในกล่องแชท และตั้งเวลาให้หายไป 20 วินาที
-    function displayMsg(user, text, id) {
-      const div = document.createElement("div");
-      div.className = "msg user" + user;
-      div.dataset.id = id;
-      div.textContent = `User ${user}: ${text}`;
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
+  // ลบข้อความจาก LocalStorage
+  function removeMessageFromStorage(timestamp) {
+    let messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+    messages = messages.filter(msg => msg.timestamp !== timestamp);
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+  }
 
-      setTimeout(() => {
-        if (div.parentNode) {
-          div.remove();
-        }
-      }, 20000);
-    }
-  </script>
+  // ส่งข้อความ
+  function sendMessage() {
+    const user = document.getElementById('userSelect').value;
+    const text = document.getElementById('messageInput').value.trim();
+    if (!text) return;
+
+    const timestamp = Date.now();
+    addMessageToDOM(user, text, timestamp);
+
+    // เก็บข้อความลง LocalStorage
+    const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+    messages.push({ user, text, timestamp });
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+
+    document.getElementById('messageInput').value = '';
+  }
+
+  // โหลดข้อความตอนเริ่มต้น
+  loadMessages();
+
+  // ตรวจจับการเปลี่ยนแปลง LocalStorage จากแท็บอื่น (จำลองเรียลไทม์)
+  window.addEventListener('storage', loadMessages);
+</script>
+
 </body>
 </html>
