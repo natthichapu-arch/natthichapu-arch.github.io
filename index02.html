@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Class Cancellation Alert</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  #alertBox {
+    display: none;
+    background: #ffe5e5;
+    border: 1px solid #ff4d4d;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 8px;
+  }
+  #alertBox h3 { margin: 0; color: #b30000; }
+  #alertBox p { margin: 5px 0; }
+  button {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    background: #b30000;
+    color: white;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h2>ระบบประกาศคลาสเรียน</h2>
+<div id="alertBox">
+  <h3>ประกาศยกเลิกคลาส 🚨</h3>
+  <p>วิชา: Industrial Engineering 101</p>
+  <p>เวลา: วันนี้ 10:00 น.</p>
+  <p><b>เหตุผล:</b> อาจารย์ติดภารกิจด่วน</p>
+  <button onclick="acknowledge()">รับทราบ</button>
+</div>
+
+<script>
+  // จำลองการประกาศล่วงหน้า 10 นาที
+  function showCancellation() {
+    document.getElementById('alertBox').style.display = 'block';
+  }
+
+  // ฟังก์ชันกดรับทราบ
+  function acknowledge() {
+    alert("คุณได้ยืนยันการรับทราบแล้ว ✅");
+    document.getElementById('alertBox').style.display = 'none';
+  }
+
+  // จำลองว่ามีการประกาศตอนนี้ (โชว์ทันที)
+  setTimeout(showCancellation, 1000); 
+</script>
+
+</body>
+</html>
