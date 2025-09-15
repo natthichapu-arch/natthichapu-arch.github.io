@@ -1,87 +1,64 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<title>Interactive Chat Prototype</title>
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  #chatBox { border: 1px solid #ccc; height: 300px; width: 400px; overflow-y: auto; padding: 10px; }
-  .message { padding: 5px; margin: 5px 0; border-radius: 5px; }
-  .userA { background-color: #d1e7dd; text-align: left; }
-  .userB { background-color: #f8d7da; text-align: right; }
-</style>
+  <meta charset="UTF-8">
+  <title>Algorithm Design - Conflict Handling</title>
+  <style>
+    body { font-family: "Prompt", sans-serif; text-align: center; margin: 40px; background: #f4f8ff; }
+    h2 { color: #2c3e50; }
+    button {
+      padding: 10px 20px; margin: 10px;
+      font-size: 16px; cursor: pointer;
+      border: none; border-radius: 6px;
+      background: #4CAF50; color: white;
+    }
+    button:hover { background: #45a049; }
+    #output { margin-top: 20px; font-size: 18px; text-align: left; display: inline-block; }
+    .step { margin: 8px 0; padding: 8px; background: #fff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  </style>
 </head>
 <body>
 
-<h2>Chat Prototype</h2>
+  <h2>🧩 Algorithm Design - การแก้ไขปัญหาในกลุ่ม</h2>
+  <p>เลือกสถานการณ์ที่เกิดขึ้น</p>
+  <button onclick="runAlgorithm(true)">📌 ถูกแท็กในประเด็น</button>
+  <button onclick="runAlgorithm(false)">✅ ไม่มีการกล่าวถึง</button>
 
-<div>
-  <label>Select User: </label>
-  <select id="userSelect">
-    <option value="A">User A</option>
-    <option value="B">User B</option>
-  </select>
-</div>
+  <div id="output"></div>
 
-<div id="chatBox"></div>
+  <script>
+    function runAlgorithm(tagged_message) {
+      const output = document.getElementById("output");
+      output.innerHTML = ""; // เคลียร์หน้าจอทุกครั้ง
 
-<input type="text" id="messageInput" placeholder="พิมพ์ข้อความ..." />
-<button onclick="sendMessage()">Send</button>
+      // Step 1
+      if (tagged_message) {
+        output.innerHTML += <div class="step">🔔 Step 1: ตรวจสอบ → มีการกล่าวอ้างถึงคุณ</div>;
 
-<script>
-  const chatBox = document.getElementById('chatBox');
+        // Step 2
+        output.innerHTML += <div class="step">📢 Step 2: ชี้แจงในกลุ่มว่า "ไม่ได้มีส่วนเกี่ยวข้อง"</div>;
 
-  // ดึงข้อความจาก LocalStorage
-  function loadMessages() {
-    const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-    chatBox.innerHTML = '';
-    messages.forEach(msg => addMessageToDOM(msg.user, msg.text, msg.timestamp));
-  }
+        // Step 3
+        output.innerHTML += <div class="step">🤝 Step 3: ยืนยันอย่างสุภาพ → "ยังไม่ได้แสดงความเห็นใด ๆ"</div>;
 
-  // เพิ่มข้อความลง DOM
-  function addMessageToDOM(user, text, timestamp) {
-    const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message', user === 'A' ? 'userA' : 'userB');
-    msgDiv.textContent = `${text} (${new Date(timestamp).toLocaleTimeString()})`;
-    chatBox.appendChild(msgDiv);
+        // Step 4
+        output.innerHTML += <div class="step">👉 Step 4: ขอให้ผู้ที่แท็กเป็นผู้ชี้แจงข้อเท็จจริงด้วยตนเอง</div>;
 
-    // ตั้งเวลาให้ข้อความหายไป 20 วินาที
-    setTimeout(() => {
-      msgDiv.remove();
-      removeMessageFromStorage(timestamp);
-    }, 20000);
-  }
+        // Step 5
+        output.innerHTML += <div class="step">💡 Step 5: เน้นการทำงานร่วมกัน → ส่งเสริมความร่วมมือ ป้องกันไม่ให้เกิดการแบ่งฝ่าย</div>;
 
-  // ลบข้อความจาก LocalStorage
-  function removeMessageFromStorage(timestamp) {
-    let messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-    messages = messages.filter(msg => msg.timestamp !== timestamp);
-    localStorage.setItem('chatMessages', JSON.stringify(messages));
-  }
+        // Step 6
+        output.innerHTML += <div class="step">😊 Step 6: แสดงท่าทีสุภาพและชัดเจน → ลดความเข้าใจผิด และสร้างบรรยากาศเชิงบวก</div>;
 
-  // ส่งข้อความ
-  function sendMessage() {
-    const user = document.getElementById('userSelect').value;
-    const text = document.getElementById('messageInput').value.trim();
-    if (!text) return;
-
-    const timestamp = Date.now();
-    addMessageToDOM(user, text, timestamp);
-
-    // เก็บข้อความลง LocalStorage
-    const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-    messages.push({ user, text, timestamp });
-    localStorage.setItem('chatMessages', JSON.stringify(messages));
-
-    document.getElementById('messageInput').value = '';
-  }
-
-  // โหลดข้อความตอนเริ่มต้น
-  loadMessages();
-
-  // ตรวจจับการเปลี่ยนแปลง LocalStorage จากแท็บอื่น (จำลองเรียลไทม์)
-  window.addEventListener('storage', loadMessages);
-</script>
+        // Output
+        output.innerHTML += <div class="step" style="background:#d4edda; color:#155724;">✅ Output: ความเข้าใจที่ถูกต้องในกลุ่ม และบรรยากาศการทำงานที่เป็นมิตร</div>;
+      } else {
+        output.innerHTML = <div class="step" style="background:#fff3cd; color:#856404;">ไม่มีการกล่าวอ้างถึงคุณ → ไม่ต้องดำเนินการใด ๆ</div>;
+      }
+    }
+  </script>
 
 </body>
 </html>
+ส่งแล้ว
+เขียนถึง Kantapich Laaen
