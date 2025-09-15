@@ -1,245 +1,416 @@
 <!DOCTYPE html>
-<html lang="th">
+
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Chat Leak Prototype — 20s disappear (No copy)</title>
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; background:#f7f7f8; }
-  .controls { margin-bottom:12px; }
-  #chatBox { 
-    border:1px solid #ddd; background:white; height:360px; width:420px; overflow-y:auto; 
-    padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.06);
-  }
-  .message-wrap { margin:8px 0; display:flex; }
-  .meta { font-size:12px; color:#666; margin-bottom:6px;}
-  .left { justify-content:flex-start; }
-  .right { justify-content:flex-end; }
-  /* ปิด selection เพื่อยากต่อการไฮไลต์ */
-  * { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
-  /* ปุ่ม / input */
-  #messageInput { width:300px; padding:8px; }
-  button { padding:8px 10px; margin-left:6px; cursor:pointer; border-radius:6px; border:1px solid #ccc; background:#fff; }
-  /* ข้อความแสดงชั่วคราว (info) */
-  #info { margin-top:10px; color:#333; font-size:13px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat - Disappearing Messages</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* Disable text selection */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+```
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .chat-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 500px;
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-header {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+    }
+
+    .chat-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .user-selector {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    .user-btn {
+        padding: 8px 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .user-btn.active {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.8);
+        transform: scale(1.05);
+    }
+
+    .status {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .message {
+        padding: 12px 16px;
+        border-radius: 18px;
+        max-width: 85%;
+        word-wrap: break-word;
+        position: relative;
+        animation: messageAppear 0.3s ease-out;
+        transition: all 0.5s ease;
+    }
+
+    .message.disappearing {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    .message.user1 {
+        background: linear-gradient(135deg, #4facfe, #00f2fe);
+        color: white;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+
+    .message.user2 {
+        background: linear-gradient(135deg, #43e97b, #38f9d7);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-header {
+        font-size: 0.7rem;
+        opacity: 0.8;
+        margin-bottom: 4px;
+        font-weight: bold;
+    }
+
+    .message-timer {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: bold;
+    }
+
+    .input-container {
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.02);
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .input-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .message-input {
+        flex: 1;
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 25px;
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.3s ease;
+    }
+
+    .message-input:focus {
+        border-color: #667eea;
+    }
+
+    .send-btn {
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: transform 0.2s ease;
+    }
+
+    .send-btn:hover {
+        transform: scale(1.05);
+    }
+
+    .send-btn:active {
+        transform: scale(0.95);
+    }
+
+    @keyframes messageAppear {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .warning-message {
+        background: rgba(255, 193, 7, 0.1);
+        border: 2px solid rgba(255, 193, 7, 0.3);
+        color: #856404;
+        padding: 10px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    /* Disable context menu and drag */
+    .message {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        pointer-events: auto;
+    }
+
+    .online-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #4CAF50;
+        border-radius: 50%;
+        margin-left: 5px;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
 </style>
+```
+
 </head>
 <body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-title">Group Chat Prototype</div>
+            <div class="user-selector">
+                <button class="user-btn active" id="user1-btn" onclick="switchUser('user1')">
+                    User 1 <span class="online-indicator"></span>
+                </button>
+                <button class="user-btn" id="user2-btn" onclick="switchUser('user2')">
+                    User 2 <span class="online-indicator"></span>
+                </button>
+            </div>
+            <div class="status">Messages disappear after 20 seconds</div>
+        </div>
 
-<h2>Chat Prototype — แชทกลุ่มหลุดมือ (ต้นแบบ)</h2>
+```
+    <div class="messages-container" id="messages">
+        <div class="warning-message">
+            ⚠️ This is a prototype demonstrating disappearing messages. Text copying is disabled.
+        </div>
+    </div>
 
-<div class="controls">
-  <label>เลือกผู้ใช้: </label>
-  <select id="userSelect">
-    <option value="A">User A</option>
-    <option value="B">User B</option>
-  </select>
-  <input id="messageInput" placeholder="พิมพ์ข้อความ..." />
-  <button id="sendBtn">ส่ง</button>
-  <button id="clearAllBtn" title="ลบข้อความทั้งหมด (เพื่อทดสอบ)">ล้างทั้งหมด</button>
+    <div class="input-container">
+        <div class="input-group">
+            <input type="text" class="message-input" id="messageInput" 
+                   placeholder="Type your message..." maxlength="200">
+            <button class="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
 </div>
 
-<div id="chatBox" aria-live="polite"></div>
-<div id="info">เมื่อส่ง ข้อความจะหายไปใน <b>20 วินาที</b> และจะแสดงในทุกแท็บ/อุปกรณ์ที่เปิดหน้านี้พร้อมกัน</div>
-
 <script>
-(function(){
-  const STORAGE_KEY = 'chat_prototype_messages_v1';
-  const TIME_TO_LIVE = 20000; // 20 วินาที
-  const chatBox = document.getElementById('chatBox');
-  const userSelect = document.getElementById('userSelect');
-  const input = document.getElementById('messageInput');
-  const sendBtn = document.getElementById('sendBtn');
-  const clearBtn = document.getElementById('clearAllBtn');
+    let currentUser = 'user1';
+    let messages = [];
+    let messageId = 0;
 
-  // ปิด context menu + ป้องกัน copy/cut
-  window.addEventListener('contextmenu', e => e.preventDefault());
-  window.addEventListener('copy', e => e.preventDefault());
-  window.addEventListener('cut', e => e.preventDefault());
-  window.addEventListener('keydown', (e) => {
-    // ป้องกัน Ctrl/Cmd + C, Ctrl/Cmd + A
-    if ((e.ctrlKey || e.metaKey) && ['c','a','x','s'].includes(e.key.toLowerCase())) {
-      e.preventDefault();
-    }
-  });
-
-  // อ่าน messages จาก storage
-  function readMessages() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch (err) {
-      return [];
-    }
-  }
-
-  function writeMessages(arr) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-  }
-
-  // สร้าง id แบบง่าย
-  function uid() { return 'm_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
-
-  // เพิ่ม message ใหม่ (บันทึกไป storage)
-  function addMessage(user, text) {
-    const msg = { id: uid(), user, text, ts: Date.now() };
-    const arr = readMessages();
-    arr.push(msg);
-    writeMessages(arr);
-    renderMessages(); // update DOM
-    scheduleRemoval(msg.id, TIME_TO_LIVE - 100); // remove local view slightly before storage cleanup (smoother)
-  }
-
-  // ลบ message โดย id (จาก storage)
-  function removeMessageById(id) {
-    const arr = readMessages().filter(m => m.id !== id);
-    writeMessages(arr);
-    renderMessages();
-  }
-
-  // ฟังก์ชันลบอัตโนมัติ: หา messages ที่เกิน 20s แล้วลบ
-  function cleanupExpired() {
-    const now = Date.now();
-    const arr = readMessages().filter(m => (now - m.ts) < TIME_TO_LIVE);
-    writeMessages(arr);
-  }
-
-  // วาดข้อความเป็น canvas เพื่อป้องกันการคัดลอก (best-effort)
-  function makeMessageCanvas(text, isRight) {
-    // สร้าง canvas ขนาดพอเหมาะ (ประมาณ)
-    const padding = 12;
-    const fontSize = 14;
-    const font = `${fontSize}px Arial, sans-serif`;
-    const ctx = document.createElement('canvas').getContext('2d');
-    ctx.font = font;
-    // วัดความกว้าง (wrap ถ้าจำเป็น)
-    const maxWidth = 260;
-    const words = text.split(' ');
-    const lines = [];
-    let line = '';
-    for (let w of words) {
-      const test = line ? line + ' ' + w : w;
-      const width = ctx.measureText(test).width;
-      if (width > maxWidth) {
-        lines.push(line);
-        line = w;
-      } else line = test;
-    }
-    if (line) lines.push(line);
-    // ตั้งขนาด canvas
-    const width = Math.min(maxWidth + padding*2, Math.max(...lines.map(l => ctx.measureText(l).width)) + padding*2);
-    const height = lines.length * (fontSize + 6) + padding*2;
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.ceil(width);
-    canvas.height = Math.ceil(height);
-    const c = canvas.getContext('2d');
-    // พื้นหลังฟองข้อความ
-    c.fillStyle = isRight ? '#f8d7da' : '#d1e7dd';
-    roundRect(c, 0, 0, canvas.width, canvas.height, 8, true, false);
-    // ข้อความ
-    c.font = font;
-    c.fillStyle = '#222';
-    c.textBaseline = 'top';
-    let y = padding;
-    lines.forEach(lineText => {
-      const x = padding;
-      c.fillText(lineText, x, y);
-      y += fontSize + 6;
+    // Disable right-click context menu
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
     });
-    // ป้องกันการคัดลอกภาพ: disable draggable
-    canvas.draggable = false;
-    canvas.style.pointerEvents = 'auto';
-    canvas.style.borderRadius = '6px';
-    return canvas;
-  }
 
-  // helper: draw rounded rect
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // render all messages in DOM
-  function renderMessages() {
-    cleanupExpired(); // remove expired from storage first
-    const arr = readMessages();
-    chatBox.innerHTML = '';
-    arr.forEach(m => {
-      const wrap = document.createElement('div');
-      wrap.className = 'message-wrap ' + (m.user === 'A' ? 'left' : 'right');
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.textContent = (m.user === 'A' ? 'User A' : 'User B') + ' • ' + new Date(m.ts).toLocaleTimeString();
-      // canvas as message body
-      const canvas = makeMessageCanvas(m.text, m.user === 'B');
-      const container = document.createElement('div');
-      container.appendChild(meta);
-      container.appendChild(canvas);
-      // store element reference for possible removal scheduling
-      container.dataset.msgId = m.id;
-      wrap.appendChild(container);
-      chatBox.appendChild(wrap);
-      // schedule removal when time done
-      const timeLeft = TIME_TO_LIVE - (Date.now() - m.ts);
-      if (timeLeft > 0) scheduleRemoval(m.id, timeLeft + 50);
+    // Disable text selection with additional methods
+    document.addEventListener('selectstart', function(e) {
+        e.preventDefault();
+        return false;
     });
-    // scroll to bottom
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
 
-  // schedule local removal of message element after delay
-  const removalTimers = {};
-  function scheduleRemoval(id, delay) {
-    if (removalTimers[id]) clearTimeout(removalTimers[id]);
-    removalTimers[id] = setTimeout(() => {
-      // remove from storage (this will trigger storage event and update all tabs)
-      removeMessageById(id);
-      delete removalTimers[id];
-    }, Math.max(0, delay));
-  }
+    // Disable drag
+    document.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
 
-  // event: ส่งข้อความ
-  sendBtn.addEventListener('click', () => {
-    const text = input.value.trim();
-    if (!text) return;
-    addMessage(userSelect.value, text);
-    input.value = '';
-  });
+    // Disable copy shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && (e.key === 'c' || e.key === 'a' || e.key === 'v')) {
+            e.preventDefault();
+            return false;
+        }
+    });
 
-  // Enter key send
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      sendBtn.click();
+    function switchUser(user) {
+        currentUser = user;
+        document.getElementById('user1-btn').classList.toggle('active', user === 'user1');
+        document.getElementById('user2-btn').classList.toggle('active', user === 'user2');
     }
-  });
 
-  // ล้างทั้งหมด (สำหรับทดสอบ)
-  clearBtn.addEventListener('click', () => {
-    writeMessages([]);
-    renderMessages();
-  });
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        
+        if (!text) return;
 
-  // sync เมื่อ storage เปลี่ยน (แท็บอื่นส่ง/ลบ)
-  window.addEventListener('storage', (e) => {
-    if (e.key === STORAGE_KEY) {
-      renderMessages();
+        const message = {
+            id: messageId++,
+            text: text,
+            user: currentUser,
+            timestamp: Date.now(),
+            timer: 20
+        };
+
+        messages.push(message);
+        displayMessage(message);
+        startMessageTimer(message);
+        input.value = '';
+        
+        // Scroll to bottom
+        const container = document.getElementById('messages');
+        container.scrollTop = container.scrollHeight;
     }
-  });
 
-  // โหลดตอนเริ่ม
-  renderMessages();
+    function displayMessage(message) {
+        const container = document.getElementById('messages');
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${message.user}`;
+        messageEl.id = `message-${message.id}`;
+        
+        messageEl.innerHTML = `
+            <div class="message-header">${message.user === 'user1' ? 'User 1' : 'User 2'}</div>
+            <div class="message-text">${message.text}</div>
+            <div class="message-timer" id="timer-${message.id}">${message.timer}</div>
+        `;
+        
+        container.appendChild(messageEl);
+    }
 
-  // รอบทำความสะอาดเป็นพัก ๆ เผื่อมี message ค้าง
-  setInterval(cleanupExpired, 5000);
+    function startMessageTimer(message) {
+        const timerEl = document.getElementById(`timer-${message.id}`);
+        const messageEl = document.getElementById(`message-${message.id}`);
+        
+        const interval = setInterval(() => {
+            message.timer--;
+            if (timerEl) {
+                timerEl.textContent = message.timer;
+            }
+            
+            if (message.timer <= 0) {
+                clearInterval(interval);
+                removeMessage(message.id);
+            }
+        }, 1000);
+    }
 
-})();
+    function removeMessage(messageId) {
+        const messageEl = document.getElementById(`message-${messageId}`);
+        if (messageEl) {
+            messageEl.classList.add('disappearing');
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 500);
+        }
+        
+        // Remove from messages array
+        messages = messages.filter(msg => msg.id !== messageId);
+    }
+
+    // Handle Enter key
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Add some demo messages
+    setTimeout(() => {
+        const demoMessages = [
+            { text: "Hey everyone! Welcome to the chat!", user: 'user1' },
+            { text: "Hi there! This is pretty cool.", user: 'user2' },
+            { text: "Remember, messages disappear after 20 seconds!", user: 'user1' }
+        ];
+        
+        demoMessages.forEach((demo, index) => {
+            setTimeout(() => {
+                const message = {
+                    id: messageId++,
+                    text: demo.text,
+                    user: demo.user,
+                    timestamp: Date.now(),
+                    timer: 20
+                };
+                messages.push(message);
+                displayMessage(message);
+                startMessageTimer(message);
+            }, index * 1000);
+        });
+    }, 1000);
 </script>
+```
 
 </body>
 </html>
