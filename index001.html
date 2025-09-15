@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat - Disappearing Messages</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* Disable text selection */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+```
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .chat-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 500px;
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-header {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+    }
+
+    .chat-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .user-selector {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    .user-btn {
+        padding: 8px 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .user-btn.active {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.8);
+        transform: scale(1.05);
+    }
+
+    .status {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .message {
+        padding: 12px 16px;
+        border-radius: 18px;
+        max-width: 85%;
+        word-wrap: break-word;
+        position: relative;
+        animation: messageAppear 0.3s ease-out;
+        transition: all 0.5s ease;
+    }
+
+    .message.disappearing {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    .message.user1 {
+        background: linear-gradient(135deg, #4facfe, #00f2fe);
+        color: white;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+
+    .message.user2 {
+        background: linear-gradient(135deg, #43e97b, #38f9d7);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-header {
+        font-size: 0.7rem;
+        opacity: 0.8;
+        margin-bottom: 4px;
+        font-weight: bold;
+    }
+
+    .message-timer {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: bold;
+    }
+
+    .input-container {
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.02);
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .input-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .message-input {
+        flex: 1;
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 25px;
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.3s ease;
+    }
+
+    .message-input:focus {
+        border-color: #667eea;
+    }
+
+    .send-btn {
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: transform 0.2s ease;
+    }
+
+    .send-btn:hover {
+        transform: scale(1.05);
+    }
+
+    .send-btn:active {
+        transform: scale(0.95);
+    }
+
+    @keyframes messageAppear {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .warning-message {
+        background: rgba(255, 193, 7, 0.1);
+        border: 2px solid rgba(255, 193, 7, 0.3);
+        color: #856404;
+        padding: 10px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    /* Disable context menu and drag */
+    .message {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        pointer-events: auto;
+    }
+
+    .online-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #4CAF50;
+        border-radius: 50%;
+        margin-left: 5px;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-title">Group Chat Prototype</div>
+            <div class="user-selector">
+                <button class="user-btn active" id="user1-btn" onclick="switchUser('user1')">
+                    User 1 <span class="online-indicator"></span>
+                </button>
+                <button class="user-btn" id="user2-btn" onclick="switchUser('user2')">
+                    User 2 <span class="online-indicator"></span>
+                </button>
+            </div>
+            <div class="status">Messages disappear after 20 seconds</div>
+        </div>
+
+```
+    <div class="messages-container" id="messages">
+        <div class="warning-message">
+            ⚠️ This is a prototype demonstrating disappearing messages. Text copying is disabled.
+        </div>
+    </div>
+
+    <div class="input-container">
+        <div class="input-group">
+            <input type="text" class="message-input" id="messageInput" 
+                   placeholder="Type your message..." maxlength="200">
+            <button class="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentUser = 'user1';
+    let messages = [];
+    let messageId = 0;
+
+    // Disable right-click context menu
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    });
+
+    // Disable text selection with additional methods
+    document.addEventListener('selectstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
+
+    // Disable drag
+    document.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
+
+    // Disable copy shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && (e.key === 'c' || e.key === 'a' || e.key === 'v')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    function switchUser(user) {
+        currentUser = user;
+        document.getElementById('user1-btn').classList.toggle('active', user === 'user1');
+        document.getElementById('user2-btn').classList.toggle('active', user === 'user2');
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        
+        if (!text) return;
+
+        const message = {
+            id: messageId++,
+            text: text,
+            user: currentUser,
+            timestamp: Date.now(),
+            timer: 20
+        };
+
+        messages.push(message);
+        displayMessage(message);
+        startMessageTimer(message);
+        input.value = '';
+        
+        // Scroll to bottom
+        const container = document.getElementById('messages');
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function displayMessage(message) {
+        const container = document.getElementById('messages');
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${message.user}`;
+        messageEl.id = `message-${message.id}`;
+        
+        messageEl.innerHTML = `
+            <div class="message-header">${message.user === 'user1' ? 'User 1' : 'User 2'}</div>
+            <div class="message-text">${message.text}</div>
+            <div class="message-timer" id="timer-${message.id}">${message.timer}</div>
+        `;
+        
+        container.appendChild(messageEl);
+    }
+
+    function startMessageTimer(message) {
+        const timerEl = document.getElementById(`timer-${message.id}`);
+        const messageEl = document.getElementById(`message-${message.id}`);
+        
+        const interval = setInterval(() => {
+            message.timer--;
+            if (timerEl) {
+                timerEl.textContent = message.timer;
+            }
+            
+            if (message.timer <= 0) {
+                clearInterval(interval);
+                removeMessage(message.id);
+            }
+        }, 1000);
+    }
+
+    function removeMessage(messageId) {
+        const messageEl = document.getElementById(`message-${messageId}`);
+        if (messageEl) {
+            messageEl.classList.add('disappearing');
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 500);
+        }
+        
+        // Remove from messages array
+        messages = messages.filter(msg => msg.id !== messageId);
+    }
+
+    // Handle Enter key
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Add some demo messages
+    setTimeout(() => {
+        const demoMessages = [
+            { text: "Hey everyone! Welcome to the chat!", user: 'user1' },
+            { text: "Hi there! This is pretty cool.", user: 'user2' },
+            { text: "Remember, messages disappear after 20 seconds!", user: 'user1' }
+        ];
+        
+        demoMessages.forEach((demo, index) => {
+            setTimeout(() => {
+                const message = {
+                    id: messageId++,
+                    text: demo.text,
+                    user: demo.user,
+                    timestamp: Date.now(),
+                    timer: 20
+                };
+                messages.push(message);
+                displayMessage(message);
+                startMessageTimer(message);
+            }, index * 1000);
+        });
+    }, 1000);
+</script>
+```
+
+</body>
+</html>
