@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Emergency Alert — Non-dismissible Prototype</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --panel:#071026;
+    --accent:#ff3b30;
+    --text:#fff;
+    --muted:rgba(255,255,255,0.78);
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: "Helvetica Neue", Roboto, system-ui, sans-serif;
+    background:linear-gradient(180deg,#05060a, #07203a);
+    color:var(--text);
+    -webkit-user-select:none;
+    user-select:none;
+    overscroll-behavior: contain;
+  }
+
+  .center{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+    padding:18px;
+    box-sizing:border-box;
+  }
+
+  /* Fullscreen non-dismissible modal */
+  .alert-modal{
+    width:100%;
+    max-width:900px;
+    height:100%;
+    background:linear-gradient(180deg, rgba(0,0,0,0.55), rgba(4,12,20,0.8));
+    border-radius:14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    padding:22px;
+    box-sizing:border-box;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    touch-action:none; /* prevent gestures */
+  }
+
+  .badge{
+    display:inline-block;
+    background:var(--accent);
+    color:#fff;
+    padding:8px 12px;
+    border-radius:999px;
+    font-weight:700;
+    letter-spacing:0.6px;
+    box-shadow:0 6px 20px rgba(255,59,48,0.18);
+  }
+
+  h1{
+    margin:0;
+    font-size:22px;
+  }
+  p.lead{
+    margin:6px 0 0;
+    color:var(--muted);
+    line-height:1.4;
+  }
+
+  .big-icon{
+    width:88px;height:88px;border-radius:22px;
+    background:linear-gradient(180deg,#ff5b4d,#ff2a1f);
+    display:grid;place-items:center;font-weight:900;font-size:36px;color:#fff;
+    box-shadow: 0 12px 30px rgba(255,43,31,0.18);
+  }
+
+  .content{
+    display:flex;
+    gap:14px;
+    align-items:center;
+  }
+
+  .countdown{
+    margin-top:auto;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+
+  .instructions{
+    color:var(--muted);
+    font-size:14px;
+  }
+
+  .override-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  /* visually prominent but disabled close */
+  .fake-close{
+    position:absolute;
+    right:12px;top:12px;
+    opacity:0.14;
+    pointer-events:none;
+    font-size:13px;
+    padding:6px 8px;
+    border-radius:8px;
+    background:rgba(255,255,255,0.02);
+  }
+
+  /* small accessibility notice */
+  .notice{
+    font-size:13px;
+    color:rgba(255,255,255,0.8);
+  }
+
+  /* lock overlay to prevent touches escaping modal */
+  .blocker{
+    position:fixed;inset:0;
+    background:transparent;
+    z-index:9999;
+  }
+
+  /* hide selectable cursor */
+  * { -webkit-tap-highlight-color: transparent; }
+</style>
+</head>
+<body>
+  <div class="center" id="app">
+    <div class="alert-modal" role="dialog" aria-live="assertive" aria-label="Emergency Alert" id="modal">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div>
+          <span class="badge">EMERGENCY</span>
+          <h1 id="title">Immediate Danger — Evacuate Now</h1>
+          <p class="lead" id="detail">There is a hazardous chemical leak reported in your area. Follow authorities' instructions immediately.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+          <div class="big-icon">⚠️</div>
+          <div class="notice">Priority: High</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <strong style="color:var(--muted)">Action required:</strong>
+        <p class="instructions" id="instructions">Move to higher ground and avoid low-lying areas. Close windows and ventilation. Await further instructions from authorities.</p>
+      </div>
+
+      <div class="countdown" style="margin-top:18px;">
+        <div>
+          <div style="font-size:13px;color:var(--muted)">Alert started</div>
+          <div id="startedAt" style="font-weight:700">--</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;color:var(--muted)">Auto-refresh / repeat</div>
+          <div id="repeatCounter" style="font-weight:700">--</div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px; display:flex; gap:10px; align-items:center;">
+        <button id="ack" style="padding:10px 14px;border-radius:10px;border:none;background:rgba(255,255,255,0.06);color:var(--text);cursor:not-allowed;font-weight:700">Acknowledge (disabled)</button>
+        <div style="color:var(--muted);font-size:13px">This alert cannot be dismissed from this screen.</div>
+      </div>
+
+      <div class="fake-close">Close ×</div>
+    </div>
+    <div class="blocker" id="blocker" aria-hidden="true"></div>
+  </div>
+
+<script>
+/*
+  Emergency Alert Prototype (non-dismissible UI)
+  - Uses Web Audio API to play a looping siren tone
+  - Uses Vibration API for devices that allow it
+  - Attempts Fullscreen and Wake Lock (if supported)
+  - Prevents common ways to dismiss (block clicks outside, disable keyboard escape)
+  - DISCLAIMER: Cannot override OS-level controls (mute, force-close app/tab, do-not-disturb)
+*/
+
+(function(){
+  const modal = document.getElementById('modal');
+  const blocker = document.getElementById('blocker');
+  const startedAtEl = document.getElementById('startedAt');
+  const repeatCounterEl = document.getElementById('repeatCounter');
+
+  let audioCtx = null;
+  let sirenGain = null;
+  let sirenOsc1 = null;
+  let sirenOsc2 = null;
+  let running = false;
+  let repeats = 0;
+  const startTime = new Date();
+  startedAtEl.textContent = startTime.toLocaleString();
+
+  // Prevent selection & context menu
+  document.addEventListener('selectstart', e => e.preventDefault());
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('copy', e => e.preventDefault());
+
+  // Prevent touchmove (stop swipe-to-dismiss gestures inside page)
+  document.addEventListener('touchmove', e => {
+    // allow scrolling inside modal only when needed (here we prevent to keep focus)
+    e.preventDefault();
+  }, {passive:false});
+
+  // Prevent common key shortcuts (Escape, Ctrl+W)
+  window.addEventListener('keydown', (e)=>{
+    const blocked = ['Escape','F4','F11'];
+    if (blocked.includes(e.key) || ((e.ctrlKey||e.metaKey) && (e.key === 'w' || e.key === 'W'))) {
+      e.preventDefault();
+      e.stopPropagation();
+      // show subtle feedback
+      flashBorder();
+    }
+  }, true);
+
+  // Prevent unload without confirmation attempt (browser may or may not show prompt)
+  window.addEventListener('beforeunload', function(e){
+    // Some browsers ignore custom message; this still makes leaving harder
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  });
+
+  // Flash modal border to indicate action when user tries to escape
+  function flashBorder(){
+    modal.style.boxShadow = '0 0 0 6px rgba(255,59,48,0.14)';
+    setTimeout(()=> modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.6)', 400);
+  }
+
+  // Start siren using Web Audio API (synthesized)
+  function startSiren(){
+    if (running) return;
+    try{
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      sirenGain = audioCtx.createGain();
+      sirenGain.gain.value = 0.0001;
+      sirenGain.connect(audioCtx.destination);
+
+      // Two oscillators detuned to create richer sound
+      sirenOsc1 = audioCtx.createOscillator();
+      sirenOsc2 = audioCtx.createOscillator();
+      sirenOsc1.type = 'sawtooth';
+      sirenOsc2.type = 'sawtooth';
+      sirenOsc2.detune.value = 15;
+
+      // LFO to simulate siren rising/falling
+      const lfo = audioCtx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.4; // speed of sweep
+      const lfoGain = audioCtx.createGain();
+      lfoGain.gain.value = 450; // sweep range in Hz
+
+      // Connect lfo to oscillators frequency
+      lfo.connect(lfoGain);
+      lfoGain.connect(sirenOsc1.frequency);
+      lfoGain.connect(sirenOsc2.frequency);
+
+      // base frequencies
+      sirenOsc1.frequency.value = 440;
+      sirenOsc2.frequency.value = 660;
+
+      sirenOsc1.connect(sirenGain);
+      sirenOsc2.connect(sirenGain);
+
+      const rampIn = 0.02;
+      sirenGain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + rampIn);
+
+      sirenOsc1.start();
+      sirenOsc2.start();
+      lfo.start();
+
+      // gentle rhythmic pulsing via gain automation
+      const now = audioCtx.currentTime;
+      const pulse = () => {
+        sirenGain.gain.cancelScheduledValues(now);
+        sirenGain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+        sirenGain.gain.exponentialRampToValueAtTime(0.08, audioCtx.currentTime + 0.9);
+      };
+      // call pulse repeatedly
+      const pulseInterval = setInterval(()=> {
+        if (!running) { clearInterval(pulseInterval); return; }
+        pulse();
+      }, 1000);
+
+      running = true;
+      repeats++;
+      repeatCounterEl.textContent = repeats + ' ×';
+
+    }catch(err){
+      console.warn('WebAudio init failed:', err);
+    }
+  }
+
+  // Stop siren politely
+  function stopSiren(){
+    if (!running) return;
+    try{
+      sirenGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.2);
+      sirenOsc1.stop(audioCtx.currentTime + 0.25);
+      sirenOsc2.stop(audioCtx.currentTime + 0.25);
+      audioCtx.close();
+    }catch(e){/*ignore*/}
+    running = false;
+  }
+
+  // Vibrate pattern (if supported)
+  function startVibration(){
+    if (navigator.vibrate) {
+      // pattern: vibrate, pause, vibrate
+      const pattern = [600, 300, 600, 300, 600];
+      navigator.vibrate(pattern);
+      // repeat vibration every 3s (browsers may ignore continuous long vibrations)
+      window.vibInterval = setInterval(()=> navigator.vibrate(pattern), 2800);
+    }
+  }
+  function stopVibration(){
+    if (navigator.vibrate){
+      navigator.vibrate(0);
+      clearInterval(window.vibInterval);
+    }
+  }
+
+  // Try Fullscreen
+  async function requestFullScreen(){
+    try{
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen({navigationUI:'hide'});
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      }
+    }catch(e){
+      // ignore
+    }
+  }
+
+  // Try Wake Lock API
+  let wakeLock = null;
+  async function requestWakeLock(){
+    try{
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', ()=> {
+          // maybe retry
+          console.log('Wake lock released');
+        });
+      }
+    }catch(err){
+      console.warn('Wake lock error', err);
+    }
+  }
+
+  // Primary routine to enable the alert behavior
+  async function enableAlertFlow(){
+    // some mobile browsers require a user gesture to start audio / vibration / fullscreen.
+    // We try to request them; if blocked, we attach a temporary user-gesture prompt.
+    try{
+      await requestFullScreen();
+    }catch(e){}
+
+    startSiren();
+    startVibration();
+    await requestWakeLock();
+
+    // Update repeat counter periodically
+    setInterval(()=> {
+      const minutes = Math.floor((Date.now() - startTime.getTime()) / 60000);
+      repeatCounterEl.textContent = `${repeats} × • ${minutes} min`;
+    }, 1000);
+
+    // If audio context suspended (due to autoplay policy), try to resume on touch
+    if (audioCtx && audioCtx.state === 'suspended'){
+      const resumeHandler = async () => {
+        try{
+          await audioCtx.resume();
+        }catch(e){}
+        window.removeEventListener('touchstart', resumeHandler);
+      };
+      window.addEventListener('touchstart', resumeHandler, {once:true});
+    }
+  }
+
+  // Start automatically when page loads, but many features require user gesture on mobile.
+  window.addEventListener('load', async () => {
+    // show subtle flash then start
+    modal.style.transform = 'scale(0.995)';
+    setTimeout(()=>{
+      modal.style.transform = '';
+    }, 40);
+
+    // Attempt to start; if browser blocks audio due to autoplay policy, the siren will resume on next touch
+    enableAlertFlow();
+  });
+
+  // Provide an emergency override function (only reachable if dev opens console)
+  window.__EMERGENCY_STOP = function(){
+    stopSiren();
+    stopVibration();
+    try{ if (wakeLock) wakeLock.release(); }catch(e){}
+    repeatCounterEl.textContent = 'stopped';
+    // remove beforeunload
+    window.onbeforeunload = null;
+    alert('Emergency alert STOPPED (developer override).');
+  };
+
+  // Accessibility: announce with ARIA live region (already set with aria-live on modal)
+  // Nothing more to do here.
+
+  // Clean up on visibilitychange if needed
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      // attempt to re-acquire wake lock
+      requestWakeLock();
+    }
+  });
+
+  // Small UX: tap modal to try to resume audio if suspended
+  modal.addEventListener('touchstart', async (e) => {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      try{ await audioCtx.resume(); }catch(e){}
+    }
+  });
+
+  // Defensive: prevent iframe embedding / clickjacking
+  if (window.top !== window.self){
+    // if embedded, try to break out
+    try{ window.top.location = window.location; }catch(e){}
+  }
+
+})();
+</script>
+</body>
+</html>
